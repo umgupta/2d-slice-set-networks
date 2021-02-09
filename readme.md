@@ -7,12 +7,12 @@ with Slice-based Set Networks.” In: IEEE International Symposium on Biomedical
 To cite the paper, please use the following BibTeX:
 ```
 @article{gupta2021improved,
-      title={Improved Brain Age Estimation with Slice-based Set Networks},
-      author={Umang Gupta and Pradeep Lam and Greg Ver Steeg and Paul Thompson},
-      year={2021},
-      eprint={2102.04438},
-      archivePrefix={arXiv},
-      primaryClass={eess.IV}
+  author = {Gupta, Umang and Lam, Pradeep K. and Steeg, Greg Ver and Thompson, Paul M.},
+  title = {{Improved Brain Age Estimation with Slice-based Set Networks}},
+  year = {2021},
+  eprint = {2102.04438},
+  archivePrefix = {arXiv},
+  primaryClass = {eess.IV},
 }
 ```
 
