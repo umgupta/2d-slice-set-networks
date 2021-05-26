@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-
+lib/
 lib64/
 parts/
 sdist/
@@ -106,6 +106,3 @@ venv.bak/
 .vscode
 results
 .idea
-
-
-result/
