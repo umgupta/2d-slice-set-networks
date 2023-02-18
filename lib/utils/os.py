@@ -262,7 +262,8 @@ def get_state_params(wandb_use, run_id, result_folder, statefile):
             # so we give a fresh run and create a new folder
             # case 2/4
             last_run_num = max(
-                [0] + [try_int(i[-4:]) for i in os.listdir(result_folder)]) + 1
+                [0] + [try_int(i[-4:]) for i in os.listdir(result_folder)]
+            ) + 1
             result_folder = f"{result_folder}/run_{last_run_num:04d}"
             logger.info(f"Creating new run with {result_folder}")
             safe_makedirs(result_folder)

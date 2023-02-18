@@ -2,7 +2,7 @@
 import copy
 import logging
 import os
-from typing import List, Dict, Optional, Callable, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import dill
 import numpy as np
@@ -117,14 +117,16 @@ class Trainer:
         """
         # NOTE: Best model is maintained but is saved automatically depending on save strategy,
         # So that It could be loaded outside of the training process
-        kwargs.update({
+        kwargs.update(
+            {
                 "model"        : self.model.state_dict(),
                 "optimizer"    : self.optimizer.state_dict(),
                 "epoch"        : self.epoch,
                 "step"         : self.step,
                 "best_criteria": self.best_criteria,
                 "best_epoch"   : self.best_epoch,
-        })
+            }
+        )
 
         if self.scheduler is not None:
             kwargs.update({"scheduler": self.scheduler.state_dict()})
@@ -169,9 +171,11 @@ class Trainer:
     def train_batch(self, batch, *args, **kwargs):
         # This trains the batch
         loss, aux_loss = self.run_iteration(batch, training=True, reduce=True)
-        loss_logger_helper(loss, aux_loss, writer=self.summary_writer, step=self.step,
-                           epoch=self.epoch,
-                           log_every=self.log_every, string="train")
+        loss_logger_helper(
+            loss, aux_loss, writer=self.summary_writer, step=self.step,
+            epoch=self.epoch,
+            log_every=self.log_every, string="train"
+        )
 
     def train_epoch(self, train_loader, *args, **kwargs):
         # This trains the epoch and also calls on batch begin and on batch end
@@ -211,9 +215,11 @@ class Trainer:
 
         # call validate
         loss, aux_loss = self.validate(train_loader, valid_loader, *args, **kwargs)
-        loss_logger_helper(loss, aux_loss, writer=self.summary_writer, step=self.step,
-                           epoch=self.epoch, log_every=self.log_every, string="val",
-                           force_print=True)
+        loss_logger_helper(
+            loss, aux_loss, writer=self.summary_writer, step=self.step,
+            epoch=self.epoch, log_every=self.log_every, string="val",
+            force_print=True
+        )
 
         # do scheduler step
         if self.scheduler is not None:
@@ -241,7 +247,8 @@ class Trainer:
                 self.best_criteria = criteria
                 self.best_epoch = self.epoch
                 self.best_model = copy.deepcopy(
-                    {k: v.cpu() for k, v in self.model.state_dict().items()})
+                    {k: v.cpu() for k, v in self.model.state_dict().items()}
+                )
 
                 if "best" in self.save_strategy:
                     logger.info(f"Saving best model at epoch {self.epoch}")
@@ -275,7 +282,8 @@ class Trainer:
                 if best_model_path is None:
                     raise FileNotFoundError(
                         f"Best Model not found in {self.result_dir}, please copy if it exists in "
-                        f"other folder")
+                        f"other folder"
+                    )
 
                 self.load(best_model_path)
                 # override scheduler to keep old one and also keep reduced learning rates

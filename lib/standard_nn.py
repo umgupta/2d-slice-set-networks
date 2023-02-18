@@ -14,13 +14,14 @@ from lib.utils.torch_utils import Reshape, infer_shape
 
 
 # TODO : extend to cover pooling sizes, strides etc for conv nets
-def get_arch(input_shape: typing.Union[numpy.array, typing.List], output_size: int,
-             feed_forward: bool, hidden_sizes: typing.List[int],
-             kernel_size: typing.Union[typing.List[int], int] = 3,
-             non_linearity: typing.Union[typing.List[str], str, None] = "relu",
-             norm: typing.Union[typing.List[str], str, None] = None,
-             pooling: typing.Union[typing.List[str], str, None] = None) -> nn.Module:
-
+def get_arch(
+        input_shape: typing.Union[numpy.array, typing.List], output_size: int,
+        feed_forward: bool, hidden_sizes: typing.List[int],
+        kernel_size: typing.Union[typing.List[int], int] = 3,
+        non_linearity: typing.Union[typing.List[str], str, None] = "relu",
+        norm: typing.Union[typing.List[str], str, None] = None,
+        pooling: typing.Union[typing.List[str], str, None] = None
+) -> nn.Module:
     # general assertions
     n_layers = len(hidden_sizes)
     if n_layers > 0:
@@ -65,7 +66,7 @@ def get_arch(input_shape: typing.Union[numpy.array, typing.List], output_size: i
             insize = outsize
 
         modules.append(nn.Linear(insize, output_size))
-        return  {"net" : nn.Sequential(*modules)}
+        return {"net": nn.Sequential(*modules)}
 
     # assertion specific to convolutions
     assert n_layers >= 1, "Number of layers has to be more than 1 for convolution"
@@ -83,8 +84,10 @@ def get_arch(input_shape: typing.Union[numpy.array, typing.List], output_size: i
 
     # convolutional layer with 3x3 convolutions
     inchannel = input_shape[0]
-    for nl, no, outchannel, k, p in zip(non_linearities, norms, hidden_sizes, kernel_sizes,
-                                        poolings):
+    for nl, no, outchannel, k, p in zip(
+            non_linearities, norms, hidden_sizes, kernel_sizes,
+            poolings
+    ):
         modules.append(nn.Conv2d(inchannel, outchannel, kernel_size=k))
 
         if nl == "relu":
@@ -114,4 +117,4 @@ def get_arch(input_shape: typing.Union[numpy.array, typing.List], output_size: i
     output_shape = infer_shape(nn.Sequential(*modules).to("cpu"), input_shape)
     modules.append(Reshape())
     modules.append(nn.Linear(int(numpy.prod(output_shape)), output_size))
-    return {"net" : nn.Sequential(*modules)}
+    return {"net": nn.Sequential(*modules)}

@@ -17,8 +17,10 @@ class UKBBBrainAGE(VisionDataset):
             return path
         return os.path.join(root, path)
 
-    def __init__(self, root, metadatafile, transform=None, target_transform=None, verify=False,
-                 num_sample=-1,  random_state=0):
+    def __init__(
+            self, root, metadatafile, transform=None, target_transform=None, verify=False,
+            num_sample=-1, random_state=0
+    ):
         super().__init__(root, transform=transform, target_transform=target_transform)
         self.df = pandas.read_csv(metadatafile)
 

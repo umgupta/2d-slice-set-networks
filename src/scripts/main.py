@@ -14,7 +14,7 @@ from box import Box
 from torch.utils.data import DataLoader
 
 from lib.base_trainer import Trainer
-from lib.utils import logging as logging_utils, os as os_utils, optimizer as optimizer_utils
+from lib.utils import logging as logging_utils, optimizer as optimizer_utils, os as os_utils
 from src.common.dataset import get_dataset
 
 
@@ -33,11 +33,15 @@ def parser_setup():
     parser.add_argument("--project", required=False, type=str, default="brain-age")
     parser.add_argument("--exp_name", required=True)
 
-    parser.add_argument("--device", required=False,
-                        default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--device", required=False,
+        default="cuda" if torch.cuda.is_available() else "cpu"
+    )
     parser.add_argument("--result_folder", "-r", required=False)
-    parser.add_argument("--mode", required=False, nargs="+", choices=["test", "train"],
-                        default=["test", "train"])
+    parser.add_argument(
+        "--mode", required=False, nargs="+", choices=["test", "train"],
+        default=["test", "train"]
+    )
     parser.add_argument("--statefile", "-s", required=False, default=None)
 
     parser.add_argument("--data.name", "-d", required=False, choices=["brain_age"])
@@ -48,19 +52,29 @@ def parser_setup():
     parser.add_argument("--data.valid_csv", default=None, type=str)
     parser.add_argument("--data.test_csv", default=None, type=str)
     parser.add_argument("--data.feat_csv", default=None, type=str)
-    parser.add_argument("--data.train_num_sample", default=-1, type=int,
-                        help="control number of training samples")
-    parser.add_argument("--data.frame_dim", default=1, type=int, choices=[1, 2, 3],
-                        help="choose which dimension we want to slice, 1 for sagittal, "
-                             "2 for coronal, 3 for axial")
-    parser.add_argument("--data.frame_keep_style", default="random", type=str,
-                        choices=["random", "ordered"],
-                        help="style of keeping frames when frame_keep_fraction < 1")
-    parser.add_argument("--data.frame_keep_fraction", default=0, type=float,
-                        help="fraction of frame to keep (usually used during testing with missing "
-                             "frames)")
-    parser.add_argument("--data.impute", default="drop", type=str,
-                        choices=["drop", "fill", "zeros", "noise"])
+    parser.add_argument(
+        "--data.train_num_sample", default=-1, type=int,
+        help="control number of training samples"
+    )
+    parser.add_argument(
+        "--data.frame_dim", default=1, type=int, choices=[1, 2, 3],
+        help="choose which dimension we want to slice, 1 for sagittal, "
+             "2 for coronal, 3 for axial"
+    )
+    parser.add_argument(
+        "--data.frame_keep_style", default="random", type=str,
+        choices=["random", "ordered"],
+        help="style of keeping frames when frame_keep_fraction < 1"
+    )
+    parser.add_argument(
+        "--data.frame_keep_fraction", default=0, type=float,
+        help="fraction of frame to keep (usually used during testing with missing "
+             "frames)"
+    )
+    parser.add_argument(
+        "--data.impute", default="drop", type=str,
+        choices=["drop", "fill", "zeros", "noise"]
+    )
 
     parser.add_argument("--model.name", required=False, choices=["regression"])
 
@@ -70,27 +84,35 @@ def parser_setup():
     parser.add_argument("--model.arch.attn_num_heads", required=False, type=int, default=2)
     parser.add_argument("--model.arch.attn_dim", required=False, type=int, default=128)
     parser.add_argument("--model.arch.attn_drop", required=False, type=str2bool, default=False)
-    parser.add_argument("--model.arch.agg_fn", required=False, type=str,
-                        choices=["mean", "max", "attention"])
+    parser.add_argument(
+        "--model.arch.agg_fn", required=False, type=str,
+        choices=["mean", "max", "attention"]
+    )
 
     parser.add_argument("--train.batch_size", required=False, type=int, default=128)
 
     parser.add_argument("--train.patience", required=False, type=int, default=20)
     parser.add_argument("--train.max_epoch", required=False, type=int, default=100)
-    parser.add_argument("--train.optimizer", required=False, type=str, default="adam",
-                        choices=["adam", "sgd"])
+    parser.add_argument(
+        "--train.optimizer", required=False, type=str, default="adam",
+        choices=["adam", "sgd"]
+    )
     parser.add_argument("--train.lr", required=False, type=float, default=1e-3)
     parser.add_argument("--train.weight_decay", required=False, type=float, default=5e-4)
     parser.add_argument("--train.gradient_norm_clip", required=False, type=float, default=-1)
 
-    parser.add_argument("--train.save_strategy", required=False, nargs="+",
-                        choices=["best", "last", "init", "epoch", "current"],
-                        default=["best"])
+    parser.add_argument(
+        "--train.save_strategy", required=False, nargs="+",
+        choices=["best", "last", "init", "epoch", "current"],
+        default=["best"]
+    )
     parser.add_argument("--train.log_every", required=False, type=int, default=1000)
 
     parser.add_argument("--train.stopping_criteria", required=False, type=str, default="accuracy")
-    parser.add_argument("--train.stopping_criteria_direction", required=False,
-                        choices=["bigger", "lower"], default="bigger")
+    parser.add_argument(
+        "--train.stopping_criteria_direction", required=False,
+        choices=["bigger", "lower"], default="bigger"
+    )
     parser.add_argument("--train.evaluations", required=False, nargs="*", choices=[])
 
     parser.add_argument("--train.scheduler", required=False, type=str, default=None)
@@ -102,8 +124,10 @@ def parser_setup():
     #
     parser.add_argument("--test.batch_size", required=False, type=int, default=128)
     parser.add_argument("--test.evaluations", required=False, nargs="*", choices=[])
-    parser.add_argument("--test.eval_model", required=False, type=str,
-                        choices=["best", "last", "current"], default="best")
+    parser.add_argument(
+        "--test.eval_model", required=False, type=str,
+        choices=["best", "last", "current"], default="best"
+    )
 
     return parser
 
@@ -167,12 +191,18 @@ if __name__ == "__main__":
     # num_workers = max(min(os.cpu_count(), 8), 1)
     num_workers = os.cpu_count()
     logger.info(f"Using {num_workers} workers")
-    train_loader = DataLoader(data["train"], shuffle=True, batch_size=config.train.batch_size,
-                              num_workers=num_workers)
-    valid_loader = DataLoader(data["valid"], shuffle=False, batch_size=config.test.batch_size,
-                              num_workers=num_workers)
-    test_loader = DataLoader(data["test"], shuffle=False, batch_size=config.test.batch_size,
-                             num_workers=num_workers)
+    train_loader = DataLoader(
+        data["train"], shuffle=True, batch_size=config.train.batch_size,
+        num_workers=num_workers
+    )
+    valid_loader = DataLoader(
+        data["valid"], shuffle=False, batch_size=config.test.batch_size,
+        num_workers=num_workers
+    )
+    test_loader = DataLoader(
+        data["test"], shuffle=False, batch_size=config.test.batch_size,
+        num_workers=num_workers
+    )
     logger.info("Getting model")
     # load arch module
     arch_module = importlib.import_module(config.model.arch.file.replace("/", ".")[:-3])
@@ -201,30 +231,37 @@ if __name__ == "__main__":
         lr=config.train.lr,
         optimizer=config.train.optimizer,
         opt_params={
-                "weight_decay": config.train.get("weight_decay", 1e-4),
-                "momentum"    : config.train.get("optimizer_momentum", 0.9)
+            "weight_decay": config.train.get("weight_decay", 1e-4),
+            "momentum"    : config.train.get("optimizer_momentum", 0.9)
         },
         scheduler=config.train.get("scheduler", None),
         scheduler_params={
-                "gamma"         : config.train.get("scheduler_gamma", 0.1),
-                "milestones"    : config.train.get("scheduler_milestones", [100, 200, 300]),
-                "patience"      : config.train.get("scheduler_patience", 100),
-                "step_size"     : config.train.get("scheduler_step_size", 100),
-                "load_on_reduce": config.train.get("scheduler_load_on_reduce"),
-                "mode"          : "max" if config.train.get(
-                    "stopping_criteria_direction") == "bigger" else "min"
+            "gamma"         : config.train.get("scheduler_gamma", 0.1),
+            "milestones"    : config.train.get("scheduler_milestones", [100, 200, 300]),
+            "patience"      : config.train.get("scheduler_patience", 100),
+            "step_size"     : config.train.get("scheduler_step_size", 100),
+            "load_on_reduce": config.train.get("scheduler_load_on_reduce"),
+            "mode"          : "max" if config.train.get(
+                "stopping_criteria_direction"
+            ) == "bigger" else "min"
         },
     )
-    trainer = Trainer(model, optimizer, scheduler=scheduler, statefile=config.statefile,
-                      result_dir=config.result_folder, log_every=config.train.log_every,
-                      save_strategy=config.train.save_strategy,
-                      patience=config.train.patience,
-                      max_epoch=config.train.max_epoch,
-                      stopping_criteria=config.train.stopping_criteria,
-                      gradient_norm_clip=config.train.gradient_norm_clip,
-                      stopping_criteria_direction=config.train.stopping_criteria_direction,
-                      evaluations=Box({"train": config.train.evaluations,
-                                       "test" : config.test.evaluations}))
+    trainer = Trainer(
+        model, optimizer, scheduler=scheduler, statefile=config.statefile,
+        result_dir=config.result_folder, log_every=config.train.log_every,
+        save_strategy=config.train.save_strategy,
+        patience=config.train.patience,
+        max_epoch=config.train.max_epoch,
+        stopping_criteria=config.train.stopping_criteria,
+        gradient_norm_clip=config.train.gradient_norm_clip,
+        stopping_criteria_direction=config.train.stopping_criteria_direction,
+        evaluations=Box(
+            {
+                "train": config.train.evaluations,
+                "test" : config.test.evaluations
+            }
+        )
+    )
 
     if "train" in config.mode:
         logger.info("starting training")
@@ -251,22 +288,28 @@ if __name__ == "__main__":
         step_to_write = trainer.step
         step_to_write += 1
         loss, aux_loss = trainer.test(train_loader, test_loader)
-        logging_utils.loss_logger_helper(loss, aux_loss, writer=trainer.summary_writer,
-                                         force_print=True, step=step_to_write,
-                                         epoch=trainer.epoch,
-                                         log_every=trainer.log_every, string="test",
-                                         new_line=True)
+        logging_utils.loss_logger_helper(
+            loss, aux_loss, writer=trainer.summary_writer,
+            force_print=True, step=step_to_write,
+            epoch=trainer.epoch,
+            log_every=trainer.log_every, string="test",
+            new_line=True
+        )
 
         loss, aux_loss = trainer.test(train_loader, train_loader)
-        logging_utils.loss_logger_helper(loss, aux_loss, writer=trainer.summary_writer,
-                                         force_print=True, step=step_to_write,
-                                         epoch=trainer.epoch,
-                                         log_every=trainer.log_every, string="train_eval",
-                                         new_line=True)
+        logging_utils.loss_logger_helper(
+            loss, aux_loss, writer=trainer.summary_writer,
+            force_print=True, step=step_to_write,
+            epoch=trainer.epoch,
+            log_every=trainer.log_every, string="train_eval",
+            new_line=True
+        )
 
         loss, aux_loss = trainer.test(train_loader, valid_loader)
-        logging_utils.loss_logger_helper(loss, aux_loss, writer=trainer.summary_writer,
-                                         force_print=True, step=step_to_write,
-                                         epoch=trainer.epoch,
-                                         log_every=trainer.log_every, string="valid_eval",
-                                         new_line=True)
+        logging_utils.loss_logger_helper(
+            loss, aux_loss, writer=trainer.summary_writer,
+            force_print=True, step=step_to_write,
+            epoch=trainer.epoch,
+            log_every=trainer.log_every, string="valid_eval",
+            new_line=True
+        )

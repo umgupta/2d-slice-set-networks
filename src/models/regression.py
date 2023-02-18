@@ -10,7 +10,6 @@ class Regression(BaseModel):
         self.net = net
 
     def forward(self, batch):
-
         return self.net(batch[0].to(self.device))
 
     def loss(self, pred, batch, reduce=True):

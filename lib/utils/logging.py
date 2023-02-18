@@ -1,6 +1,5 @@
 """ logging related functionality """
 
-
 import logging
 
 from torch.utils.tensorboard import SummaryWriter

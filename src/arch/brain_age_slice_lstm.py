@@ -24,11 +24,11 @@ class MRI_LSTM(nn.Module):
 
         # Build Encoder
         encoder_blocks = [
-                encoder_blk(1, 32),
-                encoder_blk(32, 64),
-                encoder_blk(64, 128),
-                encoder_blk(128, 256),
-                encoder_blk(256, 256)
+            encoder_blk(1, 32),
+            encoder_blk(32, 64),
+            encoder_blk(64, 128),
+            encoder_blk(128, 256),
+            encoder_blk(256, 256)
         ]
         self.encoder = nn.Sequential(*encoder_blocks)
 

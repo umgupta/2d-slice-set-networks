@@ -76,8 +76,10 @@ def encoder_blk(in_channels, out_channels):
 
 class MRI_ATTN(nn.Module):
 
-    def __init__(self, attn_num_heads, attn_dim, attn_drop=False, agg_fn="attention", slice_dim=1,
-                 *args, **kwargs):
+    def __init__(
+            self, attn_num_heads, attn_dim, attn_drop=False, agg_fn="attention", slice_dim=1,
+            *args, **kwargs
+    ):
         super(MRI_ATTN, self).__init__()
 
         self.input_dim = [(1, 109, 91), (91, 1, 91), (91, 109, 1)][slice_dim - 1]
@@ -87,11 +89,11 @@ class MRI_ATTN(nn.Module):
 
         # Build Encoder
         encoder_blocks = [
-                encoder_blk(1, 32),
-                encoder_blk(32, 64),
-                encoder_blk(64, 128),
-                encoder_blk(128, 256),
-                encoder_blk(256, 256)
+            encoder_blk(1, 32),
+            encoder_blk(32, 64),
+            encoder_blk(64, 128),
+            encoder_blk(128, 256),
+            encoder_blk(256, 256)
         ]
         self.encoder = nn.Sequential(*encoder_blocks)
 
@@ -116,10 +118,12 @@ class MRI_ATTN(nn.Module):
         )
 
         if agg_fn == "attention":
-            self.pooled_attention = PooledAttention(input_dim=self.num_heads * self.attn_dim,
-                                                    dim_v=self.num_heads * self.attn_dim,
-                                                    dim_k=self.num_heads * self.attn_dim,
-                                                    num_heads=self.num_heads)
+            self.pooled_attention = PooledAttention(
+                input_dim=self.num_heads * self.attn_dim,
+                dim_v=self.num_heads * self.attn_dim,
+                dim_k=self.num_heads * self.attn_dim,
+                num_heads=self.num_heads
+            )
         elif agg_fn == "mean":
             self.pooled_attention = MeanPool()
         elif agg_fn == "max":

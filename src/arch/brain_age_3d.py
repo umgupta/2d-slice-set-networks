@@ -20,9 +20,11 @@ class Model(nn.Module):
         self.conv4 = conv_blk(128, 256)
         self.conv5 = conv_blk(256, 256)
 
-        self.conv6 = nn.Sequential(nn.Conv3d(256, 64, kernel_size=1, stride=1),
-                                   nn.InstanceNorm3d(64), nn.ReLU(),
-                                   nn.AvgPool3d(kernel_size=(2, 3, 2)))
+        self.conv6 = nn.Sequential(
+            nn.Conv3d(256, 64, kernel_size=1, stride=1),
+            nn.InstanceNorm3d(64), nn.ReLU(),
+            nn.AvgPool3d(kernel_size=(2, 3, 2))
+        )
 
         self.drop = nn.Dropout3d(p=0.5)
 

@@ -5,11 +5,15 @@ from lib.data.util import DATA_FOLDER
 
 
 class Mnist(MNIST):
-    def __init__(self, root=f"{DATA_FOLDER}/mnist", train=True, transform=None,
-                 target_transform=None, download=True, init_transform=None,
-                 init_target_transform=None, seed=None, fraction=1.0):
-        super().__init__(root, train=train, transform=transform, target_transform=target_transform,
-                         download=download)
+    def __init__(
+            self, root=f"{DATA_FOLDER}/mnist", train=True, transform=None,
+            target_transform=None, download=True, init_transform=None,
+            init_target_transform=None, seed=None, fraction=1.0
+    ):
+        super().__init__(
+            root, train=train, transform=transform, target_transform=target_transform,
+            download=download
+        )
 
         if seed is not None:
             rng_state = torch.get_rng_state()
