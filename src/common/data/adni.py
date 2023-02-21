@@ -10,15 +10,17 @@ logger = logging.getLogger()
 FILEPATHKEY = "9dof_2mm_vol"
 
 
-class UKBBBrainAGE(VisionDataset):
+class ADNI(VisionDataset):
     @staticmethod
     def get_path(root, path):
         if path == "/" or root is None:
             return path
         return os.path.join(root, path)
 
-    def __init__(self, root, metadatafile, transform=None, target_transform=None, verify=False,
-                 num_sample=-1, random_state=0):
+    def __init__(
+            self, root, metadatafile, transform=None, target_transform=None, verify=False,
+            num_sample=-1, random_state=0
+    ):
         super().__init__(root, transform=transform, target_transform=target_transform)
         self.df = pandas.read_csv(metadatafile)
 
@@ -38,23 +40,24 @@ class UKBBBrainAGE(VisionDataset):
                 logger.debug(f"Dropped rows {indices}")
             self.df = self.df.drop(index=indices)
 
+        self.df["label"] = self.df["dx"] == "AD"
+
     def __getitem__(self, index):
         row = self.df.iloc[index]
         path = self.get_path(self.root, row[FILEPATHKEY])
         subject_id = row["subject_id"]
-        age = row["age_at_scan"]
+        label = row["label"]
         img = nibabel.load(path).get_fdata()
         img = (img - img.mean()) / img.std()
         scan = img[numpy.newaxis, :, :, :]
-        age = age
 
         if self.transform:
             scan = self.transform(scan)
 
         if self.target_transform:
-            age = self.target_transform(age)
+            label = self.target_transform(label)
 
-        return numpy.float32(scan), numpy.float32(age), subject_id
+        return numpy.float32(scan), numpy.int(label), subject_id
 
     def __len__(self):
         return self.df.shape[0]

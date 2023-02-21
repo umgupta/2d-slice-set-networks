@@ -314,6 +314,7 @@ if __name__ == "__main__":
 
 
 def set_seed(seed):
+    logger.debug(f"Setting seed to {seed}")
     if isinstance(seed, list):
         torch_seed, numpy_seed, random_seed = seed
     else:

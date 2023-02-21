@@ -7,7 +7,9 @@ from typing import Callable, Dict, List, Optional, Union
 import dill
 import numpy as np
 import torch
+from box import Box
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from lib.utils.logging import loss_logger_helper
 
@@ -95,10 +97,10 @@ class Trainer:
             scheduler_dict.update(data["scheduler"])
             self.scheduler.load_state_dict(scheduler_dict)
 
-        self.epoch = data["epoch"]
-        self.step = data["step"]
-        self.best_criteria = data["best_criteria"]
-        self.best_epoch = data["best_epoch"]
+        self.epoch = data.get("epoch", -1)  # -1 indicate we really did not get it)
+        self.step = data.get("step", 0)
+        self.best_criteria = data.get("best_criteria", None)
+        self.best_epoch = data.get("best_epoch", 0)
         return data
 
     def save(self, fname: str, **kwargs):
@@ -133,7 +135,7 @@ class Trainer:
 
         torch.save(kwargs, open(fname, "wb"), pickle_module=dill)
 
-    # todo : allow to extract predictions
+    
     def run_iteration(self, batch, training: bool = True, reduce: bool = True):
         """
             batch : batch of data, directly passed to model as is
@@ -150,7 +152,7 @@ class Trainer:
             self.optimizer.step()
             self.optimizer.zero_grad()
 
-        return loss, aux_loss
+        return loss, aux_loss, pred
 
     def compute_criteria(self, loss, aux_loss):
         stopping_criteria = self.stopping_criteria
@@ -170,10 +172,9 @@ class Trainer:
 
     def train_batch(self, batch, *args, **kwargs):
         # This trains the batch
-        loss, aux_loss = self.run_iteration(batch, training=True, reduce=True)
+        loss, aux_loss, _ = self.run_iteration(batch, training=True, reduce=True)
         loss_logger_helper(
-            loss, aux_loss, writer=self.summary_writer, step=self.step,
-            epoch=self.epoch,
+            loss, aux_loss, writer=self.summary_writer, step=self.step, epoch=self.epoch,
             log_every=self.log_every, string="train"
         )
 
@@ -208,13 +209,16 @@ class Trainer:
             logger.info("Saving the last model")
             self.save(f"{self.result_dir}/last_model.pt")
 
-    def on_epoch_end(self, train_loader, valid_loader, *args, **kwargs):
+    def on_epoch_end(self, train_loader, valid_loader, *args, collect_outputs=False, **kwargs):
         # called when epoch ends
         # we call validation, scheduler here
         # also check if we have a new best model and save model if needed
 
         # call validate
-        loss, aux_loss = self.validate(train_loader, valid_loader, *args, **kwargs)
+        loss, aux_loss, _ = self.validate(
+            valid_loader, *args,
+            collect_outputs=collect_outputs, **kwargs
+        )
         loss_logger_helper(
             loss, aux_loss, writer=self.summary_writer, step=self.step,
             epoch=self.epoch, log_every=self.log_every, string="val",
@@ -231,28 +235,27 @@ class Trainer:
                 self.scheduler.step()
             new_lr = [group['lr'] for group in self.optimizer.param_groups]
 
-        # if you don't pass a criteria, it won't be computed and best model won't be saved.
-        # on the contrary if you pass a stopping criteria, best model would be saved.
+        # if you don't pass a criteria i.e., "None", we will get the loss
+        # Best model would be saved based on what criteria you pass.
         # You can pass a large patience to get rid of early stopping
-        if self.stopping_criteria is not None:
-            criteria = self.compute_criteria(loss, aux_loss)
+        criteria = self.compute_criteria(loss, aux_loss)
 
-            if (
-                    (self.best_criteria is None)
-                    or (
-                    self.stopping_criteria_direction == "bigger" and self.best_criteria < criteria)
-                    or (
-                    self.stopping_criteria_direction == "lower" and self.best_criteria > criteria)
-            ):
-                self.best_criteria = criteria
-                self.best_epoch = self.epoch
-                self.best_model = copy.deepcopy(
-                    {k: v.cpu() for k, v in self.model.state_dict().items()}
-                )
+        if (
+                (self.best_criteria is None)
+                or (
+                self.stopping_criteria_direction == "bigger" and self.best_criteria < criteria)
+                or (
+                self.stopping_criteria_direction == "lower" and self.best_criteria > criteria)
+        ):
+            self.best_criteria = criteria
+            self.best_epoch = self.epoch
+            self.best_model = copy.deepcopy(
+                {k: v.cpu() for k, v in self.model.state_dict().items()}
+            )
 
-                if "best" in self.save_strategy:
-                    logger.info(f"Saving best model at epoch {self.epoch}")
-                    self.save(f"{self.result_dir}/best_model.pt")
+            if "best" in self.save_strategy:
+                logger.info(f"Saving best model at epoch {self.epoch}")
+                self.save(f"{self.result_dir}/best_model.pt")
 
         if "epoch" in self.save_strategy:
             logger.info(f"Saving model at epoch {self.epoch}")
@@ -296,7 +299,7 @@ class Trainer:
         # called after a batch is trained
         pass
 
-    def train(self, train_loader, valid_loader, *args, **kwargs):
+    def train(self, train_loader, valid_loader, *args, collect_outputs=False, **kwargs):
 
         self.on_train_begin(train_loader, valid_loader, *args, **kwargs)
         while self.epoch < self.max_epoch:
@@ -308,25 +311,28 @@ class Trainer:
             self.on_epoch_begin(train_loader, valid_loader, *args, **kwargs)
             logger.info(f"Starting epoch {self.epoch}")
             self.train_epoch(train_loader, *args, **kwargs)
-            self.on_epoch_end(train_loader, valid_loader, *args, **kwargs)
+            self.on_epoch_end(
+                train_loader, valid_loader, *args, collect_outputs=collect_outputs, **kwargs
+            )
 
             if self.epoch - self.best_epoch > self.patience:
                 logger.info(f"Patience reached stopping training after {self.epoch} epochs")
                 break
 
-        self.on_train_end(train_loader, valid_loader, *args, **kwargs)
+        self.on_train_end(train_loader, valid_loader, **kwargs)
 
-    def validate(self, train_loader, valid_loader, *args, **kwargs):
+    def validate(self, valid_loader, *args, collect_outputs=False, **kwargs):
         """
         we expect validate to return mean and other aux losses that we want to log
         """
         losses = []
-        aux_losses = {}
+        aux_losses = Box({})
+        outputs = Box({})
 
         self.model.eval()
         with torch.no_grad():
-            for i, batch in enumerate(valid_loader):
-                loss, aux_loss = self.run_iteration(batch, training=False, reduce=False)
+            for i, batch in tqdm(enumerate(valid_loader)):
+                loss, aux_loss, pred = self.run_iteration(batch, training=False, reduce=False)
                 losses.extend(loss.cpu().tolist())
 
                 if i == 0:
@@ -336,13 +342,30 @@ class Trainer:
                             aux_losses[k] = [v.cpu().tolist()]
                         else:
                             aux_losses[k] = v.cpu().tolist()
+
+                    if collect_outputs:
+                        for k, v in pred.items():
+                            # when we can't return sample wise statistics, we need to do this
+                            # this should rarely be needed but we have it just in case
+                            if len(v.shape) == 0:
+                                outputs[k] = [v.cpu().tolist()]
+                            else:
+                                outputs[k] = v.cpu().tolist()
                 else:
                     for k, v in aux_loss.items():
                         if len(v.shape) == 0:
                             aux_losses[k].append(v.cpu().tolist())
                         else:
                             aux_losses[k].extend(v.cpu().tolist())
-        return np.mean(losses), {k: np.mean(v) for (k, v) in aux_losses.items()}
 
-    def test(self, train_loader, test_loader, *args, **kwargs):
-        return self.validate(train_loader, test_loader, *args, **kwargs)
+                    if collect_outputs:
+                        for k, v in pred.items():
+                            if len(v.shape) == 0:
+                                outputs[k].append(v.cpu().tolist())
+                            else:
+                                outputs[k].extend(v.cpu().tolist())
+
+        return np.mean(losses), {k: np.mean(v) for (k, v) in aux_losses.items()}, outputs
+
+    def test(self, test_loader, *args, collect_outputs=True, **kwargs):
+        return self.validate(test_loader, *args, collect_outputs=collect_outputs, **kwargs)

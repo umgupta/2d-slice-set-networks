@@ -13,24 +13,25 @@ import wandb
 from box import Box
 from torch.utils.data import DataLoader
 
-from lib.base_trainer import Trainer
 from lib.utils import logging as logging_utils, optimizer as optimizer_utils, os as os_utils
 from src.common.dataset import get_dataset
+from src.trainer.binary_clf_trainer import BinaryClfTrainer
+from src.trainer.regression_trainer import RegressionTrainer
 
 
 def parser_setup():
     # define argparsers
     parser = argparse.ArgumentParser()
-    parser.add_argument("-D", "--debug", action='store_true')
-    parser.add_argument("--config", "-c", required=False)
-    parser.add_argument("--seed", required=False, type=int)
+    parser.add_argument("-D", "--debug", action='store_true', help="debug mode on or off")
+    parser.add_argument("--config", "-c", required=False, help="config file")
+    parser.add_argument("--seed", required=False, type=int, help="set the seed")
 
     str2bool = os_utils.str2bool
     listorstr = os_utils.listorstr
     parser.add_argument("--wandb.use", required=False, type=str2bool, default=False)
     parser.add_argument("--wandb.run_id", required=False, type=str)
     parser.add_argument("--wandb.watch", required=False, type=str2bool, default=False)
-    parser.add_argument("--project", required=False, type=str, default="brain-age")
+    parser.add_argument("--project", required=False, type=str, default="wandb project name")
     parser.add_argument("--exp_name", required=True)
 
     parser.add_argument(
@@ -44,14 +45,12 @@ def parser_setup():
     )
     parser.add_argument("--statefile", "-s", required=False, default=None)
 
-    parser.add_argument("--data.name", "-d", required=False, choices=["brain_age"])
-
-    # brain_age related arguments
+    # data arguments
+    parser.add_argument("--data.name", "-d", required=False, choices=["ukbb_brain_age", "adni_ad"])
     parser.add_argument("--data.root_path", default=None, type=str)
     parser.add_argument("--data.train_csv", default=None, type=str)
     parser.add_argument("--data.valid_csv", default=None, type=str)
     parser.add_argument("--data.test_csv", default=None, type=str)
-    parser.add_argument("--data.feat_csv", default=None, type=str)
     parser.add_argument(
         "--data.train_num_sample", default=-1, type=int,
         help="control number of training samples"
@@ -76,11 +75,19 @@ def parser_setup():
         choices=["drop", "fill", "zeros", "noise"]
     )
 
-    parser.add_argument("--model.name", required=False, choices=["regression"])
+    # model related arguments
+    parser.add_argument("--model.name", required=False, choices=["regression", "binary_classifier"])
 
     parser.add_argument("--model.arch.file", required=False, type=str, default=None)
+    # 3D CNN related args
+    # none
+
+    # 2D lstm related argument
+    # also uses frame dim from data args
     parser.add_argument("--model.arch.lstm_feat_dim", required=False, type=int, default=2)
     parser.add_argument("--model.arch.lstm_latent_dim", required=False, type=int, default=128)
+
+    # 2D Slice CNN related arguments
     parser.add_argument("--model.arch.attn_num_heads", required=False, type=int, default=2)
     parser.add_argument("--model.arch.attn_dim", required=False, type=int, default=128)
     parser.add_argument("--model.arch.attn_drop", required=False, type=str2bool, default=False)
@@ -88,9 +95,15 @@ def parser_setup():
         "--model.arch.agg_fn", required=False, type=str,
         choices=["mean", "max", "attention"]
     )
+    parser.add_argument("--model.arch.in_channel_2d", default=1, type=int)
+    parser.add_argument(
+        "--model.arch.initialization", default="custom", choices=["default", "custom"]
+    )
 
+    # training / testing related args
     parser.add_argument("--train.batch_size", required=False, type=int, default=128)
-
+    parser.add_argument("--test.batch_size", required=False, type=int, default=128)
+    # optimizer/scheduler
     parser.add_argument("--train.patience", required=False, type=int, default=20)
     parser.add_argument("--train.max_epoch", required=False, type=int, default=100)
     parser.add_argument(
@@ -100,33 +113,30 @@ def parser_setup():
     parser.add_argument("--train.lr", required=False, type=float, default=1e-3)
     parser.add_argument("--train.weight_decay", required=False, type=float, default=5e-4)
     parser.add_argument("--train.gradient_norm_clip", required=False, type=float, default=-1)
-
-    parser.add_argument(
-        "--train.save_strategy", required=False, nargs="+",
-        choices=["best", "last", "init", "epoch", "current"],
-        default=["best"]
-    )
-    parser.add_argument("--train.log_every", required=False, type=int, default=1000)
-
-    parser.add_argument("--train.stopping_criteria", required=False, type=str, default="accuracy")
-    parser.add_argument(
-        "--train.stopping_criteria_direction", required=False,
-        choices=["bigger", "lower"], default="bigger"
-    )
-    parser.add_argument("--train.evaluations", required=False, nargs="*", choices=[])
-
     parser.add_argument("--train.scheduler", required=False, type=str, default=None)
     parser.add_argument("--train.scheduler_gamma", required=False, type=float)
     parser.add_argument("--train.scheduler_milestones", required=False, nargs="+")
     parser.add_argument("--train.scheduler_patience", required=False, type=int)
     parser.add_argument("--train.scheduler_step_size", required=False, type=int)
     parser.add_argument("--train.scheduler_load_on_reduce", required=False, type=str2bool)
-    #
-    parser.add_argument("--test.batch_size", required=False, type=int, default=128)
+    parser.add_argument("--train.accumulation_steps", type=int, default=1)
+
+    parser.add_argument(
+        "--train.save_strategy", required=False, nargs="+",
+        choices=["best", "last", "init", "epoch", "current"], default=["best"]
+    )
+    parser.add_argument("--train.log_every", required=False, type=int, default=1000)
+
+    parser.add_argument("--train.stopping_criteria", required=False, type=str, default=None)
+    parser.add_argument(
+        "--train.stopping_criteria_direction", required=False, choices=["bigger", "lower"],
+        default="lower"
+    )
+    parser.add_argument("--train.evaluations", required=False, nargs="*", choices=[])
     parser.add_argument("--test.evaluations", required=False, nargs="*", choices=[])
     parser.add_argument(
-        "--test.eval_model", required=False, type=str,
-        choices=["best", "last", "current"], default="best"
+        "--test.eval_model", required=False, type=str, choices=["best", "last", "current"],
+        default="best"
     )
 
     return parser
@@ -192,27 +202,30 @@ if __name__ == "__main__":
     num_workers = os.cpu_count()
     logger.info(f"Using {num_workers} workers")
     train_loader = DataLoader(
-        data["train"], shuffle=True, batch_size=config.train.batch_size,
-        num_workers=num_workers
+        data["train"], shuffle=True, batch_size=config.train.batch_size, num_workers=num_workers
     )
     valid_loader = DataLoader(
-        data["valid"], shuffle=False, batch_size=config.test.batch_size,
-        num_workers=num_workers
+        data["valid"], shuffle=False, batch_size=config.test.batch_size, num_workers=num_workers
     )
     test_loader = DataLoader(
-        data["test"], shuffle=False, batch_size=config.test.batch_size,
-        num_workers=num_workers
+        data["test"], shuffle=False, batch_size=config.test.batch_size, num_workers=num_workers
     )
+
     logger.info("Getting model")
     # load arch module
     arch_module = importlib.import_module(config.model.arch.file.replace("/", ".")[:-3])
     model_arch = arch_module.get_arch(
-        input_shape=meta.get("input_shape"), output_size=meta.get("num_class"), **config.model.arch,
-        slice_dim=config.data.frame_dim
+        input_shape=meta.get("input_shape"), output_size=meta.get("num_class"),
+        **config.model.arch, slice_dim=config.data.frame_dim,
+        in_channel=config.model.arch.in_channel_2d
     )
 
     # declaring models
-    if config.model.name in "regression":
+    if config.model.name == "binary_classifier":
+        from src.models.binary_classifier import BinaryClassifier
+
+        model = BinaryClassifier(**model_arch)
+    elif config.model.name == "regression":
         from src.models.regression import Regression
 
         model = Regression(**model_arch)
@@ -227,14 +240,13 @@ if __name__ == "__main__":
 
     # declaring trainer
     optimizer, scheduler = optimizer_utils.get_optimizer_scheduler(
-        model,
-        lr=config.train.lr,
+        model, lr=config.train.lr,
         optimizer=config.train.optimizer,
+        scheduler=config.train.get("scheduler", None),
         opt_params={
             "weight_decay": config.train.get("weight_decay", 1e-4),
             "momentum"    : config.train.get("optimizer_momentum", 0.9)
         },
-        scheduler=config.train.get("scheduler", None),
         scheduler_params={
             "gamma"         : config.train.get("scheduler_gamma", 0.1),
             "milestones"    : config.train.get("scheduler_milestones", [100, 200, 300]),
@@ -246,9 +258,22 @@ if __name__ == "__main__":
             ) == "bigger" else "min"
         },
     )
-    trainer = Trainer(
-        model, optimizer, scheduler=scheduler, statefile=config.statefile,
-        result_dir=config.result_folder, log_every=config.train.log_every,
+
+    logger.info("optimizer")
+    logger.info(optimizer)
+    logger.info("scheduler")
+    logger.info(scheduler)
+
+    if config.model.name == "binary_classifier":
+        TrainerCls = BinaryClfTrainer
+    else:
+        TrainerCls = RegressionTrainer
+
+    trainer = TrainerCls(
+        model, optimizer, scheduler=scheduler,
+        statefile=config.statefile,
+        result_dir=config.result_folder,
+        log_every=config.train.log_every,
         save_strategy=config.train.save_strategy,
         patience=config.train.patience,
         max_epoch=config.train.max_epoch,
@@ -260,7 +285,8 @@ if __name__ == "__main__":
                 "train": config.train.evaluations,
                 "test" : config.test.evaluations
             }
-        )
+        ),
+        accumulation_steps=config.train.accumulation_steps
     )
 
     if "train" in config.mode:
@@ -277,17 +303,20 @@ if __name__ == "__main__":
                 logger.info("Loading best model")
                 trainer.load(f"{trainer.result_dir}/best_model.pt")
             else:
-                logger.info("eval_model is best, but best model not found ::: evaling last model")
+                logger.info(
+                    "eval_model is best, but best model not found ::: evaluating last model"
+                )
         else:
             logger.info("eval model is not best, so skipping loading at end of training")
 
     if "test" in config.mode:
         logger.info("evaluating model on test set")
         logger.info(f"Model was trained upto {trainer.epoch}")
+
         # copy current step and write test results to
         step_to_write = trainer.step
-        step_to_write += 1
-        loss, aux_loss = trainer.test(train_loader, test_loader)
+        logger.info("evaluating model on test set")
+        loss, aux_loss, outputs = trainer.test(test_loader)
         logging_utils.loss_logger_helper(
             loss, aux_loss, writer=trainer.summary_writer,
             force_print=True, step=step_to_write,
@@ -295,8 +324,10 @@ if __name__ == "__main__":
             log_every=trainer.log_every, string="test",
             new_line=True
         )
+        logging_utils.write_predictions(f"{config.result_folder}/test.csv", outputs)
 
-        loss, aux_loss = trainer.test(train_loader, train_loader)
+        logger.info("evaluating model on train set")
+        loss, aux_loss, outputs = trainer.test(train_loader)
         logging_utils.loss_logger_helper(
             loss, aux_loss, writer=trainer.summary_writer,
             force_print=True, step=step_to_write,
@@ -304,8 +335,10 @@ if __name__ == "__main__":
             log_every=trainer.log_every, string="train_eval",
             new_line=True
         )
+        logging_utils.write_predictions(f"{config.result_folder}/train.csv", outputs)
 
-        loss, aux_loss = trainer.test(train_loader, valid_loader)
+        logger.info("evaluating model on valid set")
+        loss, aux_loss, outputs = trainer.test(valid_loader)
         logging_utils.loss_logger_helper(
             loss, aux_loss, writer=trainer.summary_writer,
             force_print=True, step=step_to_write,
@@ -313,3 +346,4 @@ if __name__ == "__main__":
             log_every=trainer.log_every, string="valid_eval",
             new_line=True
         )
+        logging_utils.write_predictions(f"{config.result_folder}/valid.csv", outputs)

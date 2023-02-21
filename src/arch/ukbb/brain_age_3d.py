@@ -12,8 +12,9 @@ def conv_blk(in_channel, out_channel):
 
 
 class Model(nn.Module):
-    def __init__(self):
+    def __init__(self, initialization="default", **kwargs):
         super(Model, self).__init__()
+        self.initialization = initialization
         self.conv1 = conv_blk(1, 32)
         self.conv2 = conv_blk(32, 64)
         self.conv3 = conv_blk(64, 128)
@@ -26,11 +27,24 @@ class Model(nn.Module):
             nn.AvgPool3d(kernel_size=(2, 3, 2))
         )
 
-        self.drop = nn.Dropout3d(p=0.5)
+        self.drop = nn.Identity()#nn.Dropout3d(p=0.5)
 
         self.output = nn.Conv3d(64, 1, kernel_size=1, stride=1)
 
-        init.constant_(self.output.bias, 62.68)
+        self.init_weights()
+
+    def init_weights(self):
+        if self.initialization == "custom":
+            for k, m in self.named_modules():
+                if isinstance(m, nn.Conv3d):
+                    nn.init.kaiming_normal_(
+                        m.weight, mode="fan_out",
+                        nonlinearity="relu"
+                    )
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0)
+
+        nn.init.constant_(self.output.bias, 62.68)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -45,4 +59,4 @@ class Model(nn.Module):
 
 
 def get_arch(*args, **kwargs):
-    return {"net": Model()}
+    return {"net": Model(**kwargs)}

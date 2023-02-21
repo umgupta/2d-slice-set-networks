@@ -1,10 +1,9 @@
 import torch
-from box import Box
 
 from lib.base_model import Base as BaseModel
 
 
-class Regression(BaseModel):
+class BinaryClassifier(BaseModel):
 
     def __init__(self, net):
         super().__init__()
@@ -14,13 +13,14 @@ class Regression(BaseModel):
         return self.net(batch[0].to(self.device))
 
     def loss(self, pred, batch, reduce=True):
-        # ret_obj = {}
         y = batch[1].to(self.device).float()
         N = y.shape[0]
         y = y.reshape(N, -1)
         y_pred = pred.y_pred.reshape(N, -1)
-        loss = torch.nn.functional.mse_loss(y_pred, y, reduction="none").sum(dim=1)
+        loss = torch.nn.functional.binary_cross_entropy_with_logits(y_pred, y,
+                                                                    reduction="none" if not
+                                                                    reduce else "mean")
+        acc = ((y_pred > 0).long() == y.long()).float()
         if reduce:
-            loss = loss.mean()
-
-        return loss, {}, {}
+            acc = acc.mean()
+        return loss, {"accuracy": acc}, y_pred

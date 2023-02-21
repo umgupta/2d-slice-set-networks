@@ -1,0 +1,3 @@
+subject_id,dx,9dof_2mm_vol
+ID1,<CN/AD>,<path of scan relative to data.root_path (see config.py)>
+ID2,<CN/AD>,<you may also use absolute path starting with />
