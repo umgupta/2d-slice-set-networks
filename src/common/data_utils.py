@@ -72,7 +72,7 @@ def frame_drop(scan, frame_keep_style="random", frame_keep_fraction=1, frame_dim
             t = numpy.zeros((1, 1, 1, n))
             t[:, :, :, indices] = 1
             return scan + noise * (1 - t)
-    else: # drop
+    else:  # drop
         if frame_dim == 1:
             return scan[:, indices, :, :]
         if frame_dim == 2:

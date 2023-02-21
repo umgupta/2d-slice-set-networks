@@ -1,34 +1,30 @@
-## Code for "Improved Brain Age Estimation with Slice-based Set Networks", ISBI 2021
+## Code for training Deep Neural networks on Brain MRIs
 
-Umang Gupta, Pradeep Lam, Greg Ver Steeg, and Paul Thompson. “Improved Brain Age
-Estimation
-with Slice-based Set Networks.” In: IEEE International Symposium on Biomedical
-Imaging (ISBI).
-2021 (To appear).
+This repository contains codes for two papers:
+- "Improved Brain Age Estimation with Slice-based Set Networks", ISBI 2021 [[Link](https://arxiv.org/abs/2102.04438)]
+- "Transferring Models Trained on Natural Images to 3D MRI via Position Encoded Slice Models", ISBI 2023 [Link coming soon]
+
+### Citation
 
 To cite the paper, please use the following BibTeX:
 
 ```
-@article{gupta2021improved,
-  author = {Gupta, Umang and Lam, Pradeep K. and Steeg, Greg Ver and Thompson, Paul M.},
-  title = {{Improved Brain Age Estimation with Slice-based Set Networks}},
-  year = {2021},
-  eprint = {2102.04438},
-  archivePrefix = {arXiv},
-  primaryClass = {eess.IV},
+@inproceedings{gupta2021improved,
+  title={Improved brain age estimation with slice-based set networks},
+  author={Gupta, Umang and Lam, Pradeep K and Ver Steeg, Greg and Thompson, Paul M},
+  booktitle={2021 IEEE 18th International Symposium on Biomedical Imaging (ISBI)},
+  pages={840--844},
+  year={2021},
+  organization={IEEE}
 }
 ```
 
-![](arch.png)
+```Bibtex for ISBI 2023 manuscript coming soon```
 
-We proposed a new architecture for BrainAGE prediction, which works by
-encoding a single 2D slice in an MRI with a deep 2D-CNN model and
-combining the information from these 2D-slice encodings by using set networks
-or permutation invariant layers.
-Experiments on the BrainAGE prediction problem,
-using the UK Biobank dataset showed that the model with the permutation
-invariant layers trains faster and provides better predictions compared
-to the other state-of-the-art approaches.
+![](arch.png)
+We proposed a new architecture for making predictions from 3D MRIs, which works by encoding each 2D slice in an MRI with a deep 2D-CNN model and combining the information from these 2D-slice encodings by using set networks or permutation invariant layers or operations such as mean. In the ISBI 2021 paper, we performed experiments on brain age prediction using the UK Biobank dataset. We showed that the model with the permutation invariant aggregation layers trains faster and provides better predictions than the other state-of-the-art approaches. 
+
+In the ISBI 2023 paper, we introduce positional encodings to incorporate spatial information about the ordering of the slices; and also used ImageNet pretrained ResNet models as the slice encoders. In this paper, we perform experiments on brain age prediction using the UK Biobank dataset and Alzheimer's disease diagnosis on the ADNI dataset. 
 
 ## Running the code
 
@@ -40,20 +36,15 @@ See `requirements.txt` for the package requirements.
 
 ### Data requirements
 
-We have used UKBB MRI scans for training. The final dimension of the images is
-91×109×91 and they are loaded via nibabel. Our code requires the csv
-files of train/test/valid dataset. See `data` folder for how to set up the csv
-files. For more details about data and training setup, see our paper.
+We have used UK Biobank & ADNI MRI scans for training. The final dimension of the images is 91×109×91 and they are loaded via nibabel. Our code requires the csv files of train/test/valid dataset. See `data` folder for how to set up the csv files. For more details about data and training setup, see our paper.
 
 ### Training and evaluation
 
 See `src/shell` folder to reproduce the results in the paper.
-The commands for training models with full data, less data and with slicing
-along different dimensions is in `table[1,4,5].sh`.
-The code to evaluate with missing frame is in `table[2,3].sh`.
+We have organized the commands according to the tables in the paper.
 
 ### Code and other details
 
-See `config/config.py` and `src/scripts/main.py` to run change or modify params
-for training or evaluation
-Our proposed architecture is in `src/arch/brain_age_slice_set.py`
+See `config/` and `src/scripts/main.py` to run change or modify params
+for training or evaluation. 
+Our proposed architecture is in `src/arch/ukbb/brain_age_slice_set.py`

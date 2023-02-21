@@ -23,7 +23,7 @@ class RegressionTrainer(BaseTrainer):
         loss, aux_loss, output = self.model.loss(pred, batch, reduce=reduce)
 
         if training:
-            loss = loss/self.accumulation_steps
+            loss = loss / self.accumulation_steps
             loss.backward()
             if self.gradient_norm_clip > 0:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.gradient_norm_clip)
@@ -35,7 +35,7 @@ class RegressionTrainer(BaseTrainer):
         return loss, aux_loss, output
 
     def on_train_end(self, train_loader, valid_loader, *args, **kwargs):
-        #clear buffers
+        # clear buffers
         self.optimizer.step()
         self.optimizer.zero_grad()
 

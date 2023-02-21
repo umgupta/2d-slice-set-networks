@@ -1,5 +1,4 @@
 import torch
-from box import Box
 
 from lib.base_model import Base as BaseModel
 

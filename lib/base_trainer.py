@@ -135,7 +135,6 @@ class Trainer:
 
         torch.save(kwargs, open(fname, "wb"), pickle_module=dill)
 
-    
     def run_iteration(self, batch, training: bool = True, reduce: bool = True):
         """
             batch : batch of data, directly passed to model as is

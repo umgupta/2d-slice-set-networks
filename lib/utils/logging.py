@@ -7,9 +7,11 @@ from torch.utils.tensorboard import SummaryWriter
 
 logger = logging.getLogger()
 
+
 def write_predictions(file, outputs):
     df = pandas.DataFrame(outputs)
     df.to_csv(file, index=False)
+
 
 def print_verbose(string, verbose):
     if verbose:

@@ -1,7 +1,6 @@
 """ 3D brain age model"""
 from box import Box
 from torch import nn
-from torch.nn import init
 
 
 def conv_blk(in_channel, out_channel):
@@ -27,7 +26,7 @@ class Model(nn.Module):
             nn.AvgPool3d(kernel_size=(2, 3, 2))
         )
 
-        self.drop = nn.Identity()#nn.Dropout3d(p=0.5)
+        self.drop = nn.Identity()  # nn.Dropout3d(p=0.5)
 
         self.output = nn.Conv3d(64, 1, kernel_size=1, stride=1)
 

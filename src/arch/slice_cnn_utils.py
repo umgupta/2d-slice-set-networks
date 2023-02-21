@@ -73,8 +73,6 @@ class Encoder1_2D(nn.Module):
         )
 
 
-
-
 class MeanPool(nn.Module):
     def forward(self, X):
         return X.mean(dim=1, keepdim=True), None
@@ -232,7 +230,7 @@ class ResNetEncoder(nn.Module):
         out = self.post_proc(self.get_encoder_2d_embeddings(x))
         out = out.unsqueeze(2).unsqueeze(3)
         out = self.position_encoder(out)
-        return out 
+        return out
 
     def get_encoder_2d_embeddings(self, x):
         x = self.encoder_2d.conv1(x)

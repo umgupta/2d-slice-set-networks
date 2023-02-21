@@ -32,7 +32,7 @@ class BinaryClfTrainer(Trainer):
         )
         # breakpoint()
         acc = accuracy_score(labels, (preds > 0) * 1)
-        balanced_acc = balanced_accuracy_score( labels, (preds > 0) * 1)
+        balanced_acc = balanced_accuracy_score(labels, (preds > 0) * 1)
 
         return loss, Box({"accuracy": acc, "balanced_acc": balanced_acc}), Box(
             {"preds": preds, "labels": labels, "ids": ids}
